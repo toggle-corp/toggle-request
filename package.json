@@ -1,0 +1,85 @@
+{
+    "name": "@togglecorp/toggle-request",
+    "version": "0.0.1",
+    "description": "Request library by Togglecorp",
+    "files": [
+        "/build"
+    ],
+    "main": "build/index.js",
+    "module": "build/index.es.js",
+    "typings": "build/index.d.ts",
+    "scripts": {
+        "prepare": "install-peers",
+        "build": "rollup -c && tsc --project tsconfig-typings.json",
+        "prepack": "yarn build",
+        "watch": "rollup -c -w",
+        "typecheck": "tsc",
+        "lint": "eslint 'src/**/*.[tj]s?(x)'"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/toggle-corp/toggle-request.git"
+    },
+    "author": "tnagorra",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/toggle-corp/toggle-request/issues"
+    },
+    "homepage": "https://github.com/toggle-corp/toggle-request#readme",
+    "peerDependencies": {
+        "react": "^16.13.1",
+        "react-dom": "^16.13.1"
+    },
+    "dependencies": {
+        "@babel/runtime-corejs3": "^7.11.2",
+        "@togglecorp/fujs": "^1.9.2-beta.0",
+        "abort-controller": "^3.0.0"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.11.5",
+        "@babel/plugin-proposal-class-properties": "^7.10.4",
+        "@babel/plugin-proposal-decorators": "^7.10.5",
+        "@babel/plugin-proposal-do-expressions": "^7.10.4",
+        "@babel/plugin-proposal-export-namespace-from": "^7.10.4",
+        "@babel/plugin-proposal-function-sent": "^7.10.4",
+        "@babel/plugin-proposal-json-strings": "^7.10.4",
+        "@babel/plugin-proposal-nullish-coalescing-operator": "^7.10.4",
+        "@babel/plugin-proposal-numeric-separator": "^7.10.4",
+        "@babel/plugin-proposal-optional-chaining": "^7.11.0",
+        "@babel/plugin-proposal-throw-expressions": "^7.10.4",
+        "@babel/plugin-syntax-dynamic-import": "^7.8.3",
+        "@babel/plugin-syntax-import-meta": "^7.10.4",
+        "@babel/plugin-transform-runtime": "^7.11.5",
+        "@babel/preset-env": "^7.11.5",
+        "@babel/preset-react": "^7.10.4",
+        "@babel/preset-typescript": "^7.10.4",
+        "@rollup/plugin-babel": "^5.2.0",
+        "@rollup/plugin-commonjs": "^15.0.0",
+        "@rollup/plugin-node-resolve": "^9.0.0",
+        "@types/node": "^14.11.2",
+        "@types/react": "^16.9.49",
+        "@types/react-dom": "^16.9.8",
+        "@typescript-eslint/eslint-plugin": "^4.2.0",
+        "@typescript-eslint/parser": "^4.2.0",
+        "babel-loader": "^8.1.0",
+        "babel-plugin-dynamic-import-node": "^2.3.3",
+        "babel-plugin-module-resolver": "^4.0.0",
+        "babel-plugin-polyfill-corejs3": "^0.0.5",
+        "eslint": "^7.9.0",
+        "eslint-config-airbnb": "^18.2.0",
+        "eslint-import-resolver-babel-module": "^5.1.2",
+        "eslint-plugin-import": "^2.22.0",
+        "eslint-plugin-jsx-a11y": "^6.3.1",
+        "eslint-plugin-react": "^7.20.6",
+        "eslint-plugin-react-hooks": "^4.1.2",
+        "install-peers-cli": "^2.2.0",
+        "path": "^0.12.7",
+        "react-is": "^16.13.1",
+        "rollup": "^2.26.8",
+        "rollup-plugin-copy": "^3.4.0",
+        "rollup-plugin-eslint": "^7.0.0",
+        "rollup-plugin-filesize": "^9.0.2",
+        "rollup-plugin-progress": "^1.1.2",
+        "typescript": "^4.0.3"
+    }
+}
