@@ -27,6 +27,10 @@ export interface ContextInterface<R, RE, E, O> {
         options: Omit<RequestInit, 'body'> & { body?: RequestInit['body'] | object | undefined },
         requestOptions: O,
     ) => E;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getCache?: (key: string) => any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setCache?: (key: string, value: any) => void;
 }
 
 const defaultContext: ContextInterface<unknown, unknown, unknown, unknown> = {
@@ -42,6 +46,10 @@ const defaultContext: ContextInterface<unknown, unknown, unknown, unknown> = {
     }),
     transformResponse: (res) => res,
     transformError: (res) => res,
+    getCache: () => undefined,
+    setCache: () => {
+        console.warn('Trying to set cache');
+    },
 };
 
 const RequestContext = createContext(defaultContext);

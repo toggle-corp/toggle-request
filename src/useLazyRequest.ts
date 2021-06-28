@@ -56,6 +56,8 @@ function useLazyRequest<R, E, O, C = null>(
         transformUrl,
         transformResponse,
         transformError,
+        getCache,
+        setCache,
     } = useContext(RequestContext as React.Context<ContextInterface<R, unknown, E, O>>);
 
     // NOTE: forgot why the clientId is required but it is required
@@ -63,6 +65,8 @@ function useLazyRequest<R, E, O, C = null>(
     const pendingSetByRef = useRef<number>(-1);
     const responseSetByRef = useRef<number>(-1);
     const errorSetByRef = useRef<number>(-1);
+    const getCacheRef = useRef(getCache);
+    const setCacheRef = useRef(setCache);
 
     const [requestOptionsFromState, setRequestOptionsFromState] = useState(requestOptions);
     const [context, setContext] = useState<C | undefined>();
@@ -225,7 +229,13 @@ function useLazyRequest<R, E, O, C = null>(
                 delay = 0,
             } = requestOptionsRef.current;
 
-            if (!preserveResponse) {
+            const previousCache = getCacheRef.current
+                ? getCacheRef.current(extendedUrl)
+                : undefined;
+            if (method === 'GET' && previousCache) {
+                setResponseSafe(previousCache, clientIdRef.current);
+                setErrorSafe(undefined, clientIdRef.current);
+            } else if (!preserveResponse) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
             }
@@ -251,6 +261,7 @@ function useLazyRequest<R, E, O, C = null>(
                 transformOptionsRef,
                 transformResponseRef,
                 transformErrorRef,
+                setCacheRef,
                 requestOptionsRef,
                 context,
 
