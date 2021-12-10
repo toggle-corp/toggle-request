@@ -23,6 +23,7 @@ async function fetchResource<R, RE, E, C, O>(
     transformOptionsRef: MutableRefObject<ContextInterface<R, RE, E, ExtendedRequestOptions<R, E, C, O>>['transformOptions']>,
     transformResponseRef: MutableRefObject<ContextInterface<R, RE, E, ExtendedRequestOptions<R, E, C, O>>['transformResponse']>,
     transformErrorRef: MutableRefObject<ContextInterface<R, RE, E, ExtendedRequestOptions<R, E, C, O>>['transformError']>,
+    setCacheRef: MutableRefObject<ContextInterface<R, RE, E, ExtendedRequestOptions<R, E, C, O>>['setCache']>,
     requestOptionsRef: MutableRefObject<ExtendedRequestOptions<R, E, C, O>>,
     context: C,
 
@@ -50,6 +51,7 @@ async function fetchResource<R, RE, E, C, O>(
             transformOptionsRef,
             transformResponseRef,
             transformErrorRef,
+            setCacheRef,
             requestOptionsRef,
             context,
 
@@ -161,6 +163,7 @@ async function fetchResource<R, RE, E, C, O>(
             transformOptionsRef,
             transformResponseRef,
             transformErrorRef,
+            setCacheRef,
             requestOptionsRef,
             context,
 
@@ -182,6 +185,9 @@ async function fetchResource<R, RE, E, C, O>(
             setPendingSafe(false, clientId);
         }
         setErrorSafe(undefined, clientId);
+        if (options.method === 'GET' && setCacheRef.current) {
+            setCacheRef.current(url, resBody);
+        }
         setResponseSafe(resBody as R, clientId);
     });
 

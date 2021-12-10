@@ -14,6 +14,22 @@ import { UrlParams } from './types';
 import RequestContext, { ContextInterface } from './context';
 import fetchResource, { RequestOptions as BaseRequestOptions } from './fetch';
 
+function useDidUpdateEffect(fn: React.EffectCallback, inputs: React.DependencyList) {
+    const didMountRef = useRef(false);
+
+    useEffect(
+        () => {
+            if (didMountRef.current) {
+                return fn();
+            }
+            didMountRef.current = true;
+            return undefined;
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        inputs,
+    );
+}
+
 // eslint-disable-next-line @typescript-eslint/ban-types
 type RequestBody = RequestInit['body'] | object;
 
@@ -41,6 +57,8 @@ function useRequest<R, E, O>(
         transformUrl,
         transformResponse,
         transformError,
+        getCache,
+        setCache,
     } = useContext(RequestContext as React.Context<ContextInterface<R, unknown, E, O>>);
 
     // NOTE: forgot why the clientId is required but it is required
@@ -55,6 +73,8 @@ function useRequest<R, E, O>(
     const transformUrlRef = useRef(transformUrl);
     const transformResponseRef = useRef(transformResponse);
     const transformErrorRef = useRef(transformError);
+    const getCacheRef = useRef(getCache);
+    const setCacheRef = useRef(setCache);
 
     const { skip = false } = requestOptions;
 
@@ -93,6 +113,7 @@ function useRequest<R, E, O>(
         (value: R | undefined, clientId: number) => {
             if (clientId >= responseSetByRef.current) {
                 responseSetByRef.current = clientId;
+
                 setResponse(value);
             }
         },
@@ -150,7 +171,7 @@ function useRequest<R, E, O>(
     );
 
     // To re-trigger request when skip changes
-    useEffect(
+    useDidUpdateEffect(
         () => {
             setRunId(skip ? -1 : new Date().getTime());
         },
@@ -192,7 +213,13 @@ function useRequest<R, E, O>(
                 delay = 0,
             } = requestOptionsRef.current;
 
-            if (!preserveResponse) {
+            const previousCache = getCacheRef.current
+                ? getCacheRef.current(extendedUrl)
+                : undefined;
+            if (method === 'GET' && previousCache) {
+                setResponseSafe(previousCache, clientIdRef.current);
+                setErrorSafe(undefined, clientIdRef.current);
+            } else if (!preserveResponse) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
             }
@@ -218,6 +245,7 @@ function useRequest<R, E, O>(
                 transformOptionsRef,
                 transformResponseRef,
                 transformErrorRef,
+                setCacheRef,
                 requestOptionsRef,
                 null,
 
