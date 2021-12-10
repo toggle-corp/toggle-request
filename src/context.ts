@@ -33,7 +33,7 @@ export interface ContextInterface<R, RE, E, O> {
     setCache?: (key: string, value: any) => void;
 }
 
-const defaultContext: ContextInterface<unknown, unknown, unknown, unknown> = {
+const defaultContext: ContextInterface<any, any, any, any> = {
     transformUrl: (url) => url,
     transformOptions: (_, { body, ...otherOptions }) => ({
         method: 'GET',
