@@ -19,7 +19,7 @@ export interface ContextInterface<R, RE, E, O> {
         // eslint-disable-next-line @typescript-eslint/ban-types
         options: Omit<RequestInit, 'body'> & { body?: RequestInit['body'] | object | undefined },
         requestOptions: O,
-    ) => R | RE;
+    ) => [R | RE, boolean];
     transformError: (
         res: RE | 'parse' | 'network',
         url: string,
@@ -44,7 +44,7 @@ const defaultContext: ContextInterface<any, any, any, any> = {
         body: JSON.stringify(body),
         ...otherOptions,
     }),
-    transformResponse: (res) => res,
+    transformResponse: (res) => [res, false],
     transformError: (res) => res,
     getCache: () => undefined,
     setCache: () => {

@@ -117,8 +117,9 @@ async function fetchResource<R, RE, E, C, O>(
     }
 
     let resBody: R | RE;
+    let resErrored: boolean;
     try {
-        resBody = await transformResponseRef.current(
+        [resBody, resErrored] = transformResponseRef.current(
             res,
             url,
             options,
@@ -136,7 +137,7 @@ async function fetchResource<R, RE, E, C, O>(
         return;
     }
 
-    if (!res.ok) {
+    if (!res.ok || resErrored) {
         const transformedError = transformErrorRef.current(
             resBody as RE,
             url,
