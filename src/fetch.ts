@@ -119,7 +119,7 @@ async function fetchResource<R, RE, E, C, O>(
     let resBody: R | RE;
     let resErrored: boolean;
     try {
-        [resBody, resErrored] = transformResponseRef.current(
+        [resBody, resErrored] = await transformResponseRef.current(
             res,
             url,
             options,
