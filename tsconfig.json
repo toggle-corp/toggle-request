@@ -28,8 +28,7 @@
         "jsx": "react",
         "rootDir": "./src",
         "sourceMap": true,
-        "baseUrl": ".",
-        "paths": {}
+        "baseUrl": "."
     },
     "include": ["./src/index.ts", "./src/declarations"]
 }

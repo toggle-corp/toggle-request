@@ -5,16 +5,16 @@
     "files": [
         "/build"
     ],
-    "main": "build/index.js",
-    "module": "build/index.es.js",
-    "typings": "build/index.d.ts",
+    "main": "build/cjs/index.js",
+    "module": "build/esm/index.js",
+    "typings": "build/esm/index.d.ts",
     "scripts": {
         "prepare": "install-peers",
         "build": "rollup -c && tsc --project tsconfig-typings.json",
         "prepack": "yarn build",
         "watch": "rollup -c -w",
         "typecheck": "tsc",
-        "lint": "eslint 'src/**/*.[tj]s?(x)'"
+        "lint": "eslint ./src --report-unused-disable-directives"
     },
     "repository": {
         "type": "git",
@@ -26,14 +26,14 @@
         "url": "https://github.com/toggle-corp/toggle-request/issues"
     },
     "homepage": "https://github.com/toggle-corp/toggle-request#readme",
-    "peerDependencies": {
-        "react": "^16.13.1",
-        "react-dom": "^16.13.1"
-    },
     "dependencies": {
-        "@babel/runtime-corejs3": "^7.11.2",
-        "@togglecorp/fujs": "^1.9.2-beta.0",
+        "@babel/runtime": "^7.19.0",
+        "@togglecorp/fujs": "^2.0.0",
         "abort-controller": "^3.0.0"
+    },
+    "peerDependencies": {
+        "react": "^17.0.2",
+        "react-dom": "^17.0.2"
     },
     "devDependencies": {
         "@babel/core": "^7.11.5",
