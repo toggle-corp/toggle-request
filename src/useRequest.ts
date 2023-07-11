@@ -7,8 +7,6 @@ import {
     useLayoutEffect,
 } from 'react';
 
-import AbortController from 'abort-controller';
-
 import { prepareUrlParams, isFetchable, Methods } from './utils';
 import { UrlParams } from './types';
 import RequestContext, { ContextInterface } from './context';
@@ -30,7 +28,6 @@ function useDidUpdateEffect(fn: React.EffectCallback, inputs: React.DependencyLi
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 type RequestBody = RequestInit['body'] | object;
 
 export type RequestOptions<R, E, O> = BaseRequestOptions<R, E, null> & {
