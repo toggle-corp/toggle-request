@@ -9,8 +9,6 @@ import {
 } from 'react';
 import ReactDOM from 'react-dom';
 
-import AbortController from 'abort-controller';
-
 import { prepareUrlParams, isFetchable, Methods } from './utils';
 import { UrlParams } from './types';
 import RequestContext, { ContextInterface } from './context';
@@ -32,7 +30,6 @@ function resolveCallable<C, R>(value: Callable<C, R>, context: C | undefined) {
     return value;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 type RequestBody = RequestInit['body'] | object;
 
 export type LazyRequestOptions<R, E, C, O> = BaseRequestOptions<R, E, C> & {

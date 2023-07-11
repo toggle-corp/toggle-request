@@ -15,8 +15,7 @@ module.exports = {
     ],
     settings: {
         'import/resolver': {
-            'babel-module': {
-                root: ['.'],
+            node: {
                 extensions: ['.js', '.jsx', '.ts', '.tsx'],
             },
         },
@@ -57,5 +56,8 @@ module.exports = {
 
         'react-hooks/rules-of-hooks': 'error',
         'react-hooks/exhaustive-deps': 'warn',
+
+        '@typescript-eslint/no-empty-function': 0,
+        '@typescript-eslint/no-extra-semi': 0,
     },
 };

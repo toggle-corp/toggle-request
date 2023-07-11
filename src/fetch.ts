@@ -1,13 +1,19 @@
 import ReactDOM from 'react-dom';
 import { MutableRefObject } from 'react';
-import AbortController from 'abort-controller';
 
 import sleep from './sleep';
 import { ContextInterface } from './context';
 
 export interface RequestOptions<R, E, C> {
-    shouldRetry?: (val: R, run: number, context: C) => number;
-    shouldPoll?: (val: R | undefined, context: C) => number;
+    shouldRetry?: (
+        val: { errored: true, value: E } | { errored: false, value: R },
+        run: number,
+        context: C,
+    ) => number;
+    shouldPoll?: (
+        val: { errored: true, value: E } | { errored: false, value: R },
+        context: C,
+    ) => number;
     onSuccess?: (val: R, context: C) => void;
     onFailure?: (val: E, context: C) => void;
 }
@@ -37,10 +43,22 @@ async function fetchResource<R, RE, E, C, O>(
     run = 1,
 ) {
     const { signal } = myController;
-    await sleep(delay, { signal });
+    try {
+        await sleep(delay, { signal });
+    } catch (ex) {
+        // eslint-disable-next-line no-console
+        console.error(`Aborted request ${url}`);
+        return;
+    }
 
     async function handlePoll(pollTime: number) {
-        await sleep(pollTime, { signal });
+        try {
+            await sleep(pollTime, { signal });
+        } catch (ex) {
+            // eslint-disable-next-line no-console
+            console.error(`Aborted request ${url}`);
+            return;
+        }
 
         await fetchResource(
             url,
@@ -67,23 +85,127 @@ async function fetchResource<R, RE, E, C, O>(
     }
 
     async function handleError(message: E) {
-        const { shouldPoll } = requestOptionsRef.current;
-        const pollTime = shouldPoll ? shouldPoll(undefined, context) : -1;
+        const { shouldRetry, shouldPoll } = requestOptionsRef.current;
 
+        const retryTime = shouldRetry
+            ? shouldRetry({ errored: true, value: message }, run, context)
+            : -1;
+
+        if (retryTime >= 0) {
+            try {
+                await sleep(retryTime, { signal });
+            } catch (ex) {
+                // eslint-disable-next-line no-console
+                console.error(`Aborted request ${url}`);
+                return;
+            }
+            await fetchResource(
+                url,
+                options,
+                delay,
+
+                transformUrlRef,
+                transformOptionsRef,
+                transformResponseRef,
+                transformErrorRef,
+                setCacheRef,
+                requestOptionsRef,
+                context,
+
+                setPendingSafe,
+                setResponseSafe,
+                setErrorSafe,
+                callSideEffectSafe,
+
+                myController,
+                clientId,
+                run + 1,
+            );
+            return;
+        }
+
+        ReactDOM.unstable_batchedUpdates(() => {
+            setPendingSafe(false, clientId);
+            setResponseSafe(undefined, clientId);
+            setErrorSafe(message, clientId);
+        });
+
+        const { onFailure } = requestOptionsRef.current;
+        if (onFailure) {
+            callSideEffectSafe(() => {
+                onFailure(message, context);
+            }, clientId);
+        }
+
+        const pollTime = shouldPoll
+            ? shouldPoll({ errored: true, value: message }, context)
+            : -1;
         if (pollTime > 0) {
             await handlePoll(pollTime);
-        } else {
-            ReactDOM.unstable_batchedUpdates(() => {
-                setPendingSafe(false, clientId);
-                setResponseSafe(undefined, clientId);
-                setErrorSafe(message, clientId);
-            });
-            const { onFailure } = requestOptionsRef.current;
-            if (onFailure) {
-                callSideEffectSafe(() => {
-                    onFailure(message, context);
-                }, clientId);
+        }
+    }
+
+    async function handleSuccess(response: R) {
+        const { shouldRetry, shouldPoll } = requestOptionsRef.current;
+
+        const retryTime = shouldRetry
+            ? shouldRetry({ errored: false, value: response }, run, context)
+            : -1;
+
+        if (retryTime >= 0) {
+            try {
+                await sleep(retryTime, { signal });
+            } catch (ex) {
+                // eslint-disable-next-line no-console
+                console.error(`Aborted request ${url}`);
+                return;
             }
+            await fetchResource(
+                url,
+                options,
+                delay,
+
+                transformUrlRef,
+                transformOptionsRef,
+                transformResponseRef,
+                transformErrorRef,
+                setCacheRef,
+                requestOptionsRef,
+                context,
+
+                setPendingSafe,
+                setResponseSafe,
+                setErrorSafe,
+                callSideEffectSafe,
+
+                myController,
+                clientId,
+                run + 1,
+            );
+            return;
+        }
+
+        ReactDOM.unstable_batchedUpdates(() => {
+            setPendingSafe(false, clientId);
+            setErrorSafe(undefined, clientId);
+            if (options.method === 'GET' && setCacheRef.current) {
+                setCacheRef.current(url, response);
+            }
+            setResponseSafe(response, clientId);
+        });
+
+        const { onSuccess } = requestOptionsRef.current;
+        if (onSuccess) {
+            callSideEffectSafe(() => {
+                onSuccess(response, context);
+            }, clientId);
+        }
+
+        const pollTime = shouldPoll
+            ? shouldPoll({ errored: false, value: response as R }, context)
+            : -1;
+        if (pollTime > 0) {
+            await handlePoll(pollTime);
         }
     }
 
@@ -103,6 +225,7 @@ async function fetchResource<R, RE, E, C, O>(
         res = await fetch(myUrl, { ...myOptions, signal });
     } catch (e) {
         if (!signal.aborted) {
+            // eslint-disable-next-line no-console
             console.error(`An error occurred while fetching ${myUrl}`, e);
 
             const transformedError = transformErrorRef.current(
@@ -125,6 +248,7 @@ async function fetchResource<R, RE, E, C, O>(
             requestOptionsRef.current,
         );
     } catch (e) {
+        // eslint-disable-next-line no-console
         console.error(`An error occurred while parsing ${myUrl}`, e);
         const transformedError = transformErrorRef.current(
             'parse',
@@ -147,60 +271,7 @@ async function fetchResource<R, RE, E, C, O>(
         return;
     }
 
-    const { shouldRetry, shouldPoll } = requestOptionsRef.current;
-
-    // TODO: define a default shouldRetry when there is network error
-    const retryTime = shouldRetry ? shouldRetry(resBody as R, run, context) : -1;
-
-    if (retryTime >= 0) {
-        await sleep(retryTime, { signal });
-        await fetchResource(
-            url,
-            options,
-            delay,
-
-            transformUrlRef,
-            transformOptionsRef,
-            transformResponseRef,
-            transformErrorRef,
-            setCacheRef,
-            requestOptionsRef,
-            context,
-
-            setPendingSafe,
-            setResponseSafe,
-            setErrorSafe,
-            callSideEffectSafe,
-
-            myController,
-            clientId,
-            run + 1,
-        );
-        return;
-    }
-
-    const pollTime = shouldPoll ? shouldPoll(resBody as R, context) : -1;
-    ReactDOM.unstable_batchedUpdates(() => {
-        if (pollTime < 0) {
-            setPendingSafe(false, clientId);
-        }
-        setErrorSafe(undefined, clientId);
-        if (options.method === 'GET' && setCacheRef.current) {
-            setCacheRef.current(url, resBody);
-        }
-        setResponseSafe(resBody as R, clientId);
-    });
-
-    const { onSuccess } = requestOptionsRef.current;
-    if (onSuccess) {
-        callSideEffectSafe(() => {
-            onSuccess(resBody as R, context);
-        }, clientId);
-    }
-
-    if (pollTime >= 0) {
-        await handlePoll(pollTime);
-    }
+    await handleSuccess(resBody as R);
 }
 
 export default fetchResource;

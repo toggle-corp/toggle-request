@@ -1,11 +1,11 @@
 import babel from '@rollup/plugin-babel';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
+import eslint from '@rollup/plugin-eslint';
 import filesize from 'rollup-plugin-filesize';
-import { eslint } from 'rollup-plugin-eslint';
 import copy from 'rollup-plugin-copy';
 
-import pkg from './package.json';
+import pkg from './package.json' assert { type: 'json' };
 
 const INPUT_FILE_PATH = 'src/index.ts';
 
