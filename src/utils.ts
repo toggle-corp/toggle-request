@@ -36,3 +36,27 @@ export function isFetchable(
         && (!['PUT', 'PATCH', 'POST'].includes(method) || isDefined(body))
     );
 }
+
+export function resolvePath(
+    path: string,
+    params: Record<string, string | number | undefined> | undefined,
+) {
+    if (isNotDefined(path)) {
+        return '';
+    }
+
+    const resolvedUrl = path.replace(
+        /{(\w+)}/g,
+        (matchedText, matchedGroup) => {
+            const value = params?.[matchedGroup];
+            if (isNotDefined(value)) {
+                // eslint-disable-next-line no-console
+                console.error(`resolveUrlPath: value for key "${matchedGroup}" not provided in ${path}`);
+                return matchedText;
+            }
+            return String(value);
+        },
+    );
+
+    return resolvedUrl;
+}
