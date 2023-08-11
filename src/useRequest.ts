@@ -7,7 +7,12 @@ import {
     useLayoutEffect,
 } from 'react';
 
-import { prepareUrlParams, isFetchable, Methods } from './utils';
+import {
+    prepareUrlParams,
+    isFetchable,
+    Methods,
+    resolvePath,
+} from './utils';
 import { UrlParams } from './types';
 import RequestContext, { ContextInterface } from './context';
 import fetchResource, { RequestOptions as BaseRequestOptions } from './fetch';
@@ -32,6 +37,7 @@ type RequestBody = RequestInit['body'] | object;
 
 export type RequestOptions<R, E, O> = BaseRequestOptions<R, E, null> & {
     url: string | undefined;
+    pathVariables: Record<string, string | number | undefined>;
     query?: UrlParams | undefined;
     body?: RequestBody | undefined;
     method?: Methods | undefined;
@@ -81,10 +87,12 @@ function useRequest<R, E, O>(
         method = 'GET',
         body,
         other,
+        pathVariables,
     } = requestOptions;
 
     const urlQuery = query ? prepareUrlParams(query) : undefined;
-    const extendedUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+    const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+    const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
 
     const [response, setResponse] = useState<R | undefined>();
     const [error, setError] = useState<E | undefined>();

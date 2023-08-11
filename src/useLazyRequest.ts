@@ -9,7 +9,12 @@ import {
 } from 'react';
 import ReactDOM from 'react-dom';
 
-import { prepareUrlParams, isFetchable, Methods } from './utils';
+import {
+    prepareUrlParams,
+    isFetchable,
+    Methods,
+    resolvePath,
+} from './utils';
 import { UrlParams } from './types';
 import RequestContext, { ContextInterface } from './context';
 import fetchResource, { RequestOptions as BaseRequestOptions } from './fetch';
@@ -38,6 +43,7 @@ export type LazyRequestOptions<R, E, C, O> = BaseRequestOptions<R, E, C> & {
     body?: Callable<C, RequestBody | undefined>;
     method?: Callable<C, Methods | undefined>;
     other?: Callable<C, Omit<RequestInit, 'body'> | undefined>;
+    pathVariables?: Callable<C, Record<string, string | number | undefined> | undefined>;
 
     // NOTE: don't ever re-trigger
     delay?: number;
@@ -83,6 +89,7 @@ function useLazyRequest<R, E, O, C = null>(
         method: rawMethod,
         body: rawBody,
         other: rawOther,
+        pathVariables: rawPathVariables,
     } = requestOptionsFromState;
 
     const query = useMemo(
@@ -105,9 +112,14 @@ function useLazyRequest<R, E, O, C = null>(
         () => resolveCallable(rawOther, context),
         [rawOther, context],
     );
+    const pathVariables = useMemo(
+        () => resolveCallable(rawPathVariables, context),
+        [rawPathVariables, context],
+    );
 
     const urlQuery = query ? prepareUrlParams(query) : undefined;
-    const extendedUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+    const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+    const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
 
     const [response, setResponse] = useState<R | undefined>();
     const [error, setError] = useState<E | undefined>();
