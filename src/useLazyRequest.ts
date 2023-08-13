@@ -5,7 +5,6 @@ import {
     useCallback,
     useContext,
     useLayoutEffect,
-    useMemo,
 } from 'react';
 import ReactDOM from 'react-dom';
 
@@ -83,49 +82,9 @@ function useLazyRequest<R, E, O, C = null>(
 
     const contextRef = useRef(context);
 
-    const {
-        url: rawUrl,
-        query: rawQuery,
-        method: rawMethod,
-        body: rawBody,
-        other: rawOther,
-        pathVariables: rawPathVariables,
-    } = requestOptionsFromState;
-
-    const query = useMemo(
-        () => resolveCallable(rawQuery, context),
-        [rawQuery, context],
-    );
-    const url = useMemo(
-        () => resolveCallable(rawUrl, context),
-        [rawUrl, context],
-    );
-    const body = useMemo(
-        () => resolveCallable(rawBody, context),
-        [rawBody, context],
-    );
-    const method = useMemo(
-        () => resolveCallable(rawMethod, context) ?? 'GET',
-        [rawMethod, context],
-    );
-    const other = useMemo(
-        () => resolveCallable(rawOther, context),
-        [rawOther, context],
-    );
-    const pathVariables = useMemo(
-        () => resolveCallable(rawPathVariables, context),
-        [rawPathVariables, context],
-    );
-
-    const urlQuery = query ? prepareUrlParams(query) : undefined;
-    const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
-    const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
-
+    const [runId, setRunId] = useState(-1);
     const [response, setResponse] = useState<R | undefined>();
     const [error, setError] = useState<E | undefined>();
-
-    const [runId, setRunId] = useState(-1);
-
     const [pending, setPending] = useState(false);
 
     const setPendingSafe = useCallback(
@@ -146,7 +105,6 @@ function useLazyRequest<R, E, O, C = null>(
         },
         [],
     );
-
     const setErrorSafe = useCallback(
         (value: E | undefined, clientId: number) => {
             if (clientId >= errorSetByRef.current) {
@@ -156,7 +114,6 @@ function useLazyRequest<R, E, O, C = null>(
         },
         [],
     );
-
     const callSideEffectSafe = useCallback(
         (callback: () => void, clientId: number) => {
             if (clientId >= clientIdRef.current) {
@@ -166,6 +123,12 @@ function useLazyRequest<R, E, O, C = null>(
         [],
     );
 
+    useLayoutEffect(
+        () => {
+            requestOptionsRef.current = requestOptions;
+        },
+        [requestOptions],
+    );
     useLayoutEffect(
         () => {
             transformOptionsRef.current = transformOptions;
@@ -192,12 +155,6 @@ function useLazyRequest<R, E, O, C = null>(
     );
     useLayoutEffect(
         () => {
-            requestOptionsRef.current = requestOptions;
-        },
-        [requestOptions],
-    );
-    useLayoutEffect(
-        () => {
             contextRef.current = context;
         },
         [context],
@@ -205,9 +162,34 @@ function useLazyRequest<R, E, O, C = null>(
 
     useEffect(
         () => {
+            if (runId < 0) {
+                return undefined;
+            }
+
+            const {
+                url: rawUrl,
+                query: rawQuery,
+                method: rawMethod,
+                body: rawBody,
+                other: rawOther,
+                pathVariables: rawPathVariables,
+            } = requestOptionsFromState;
+
+            const query = resolveCallable(rawQuery, context);
+            const url = resolveCallable(rawUrl, context);
+
+            const body = resolveCallable(rawBody, context);
+            const method = resolveCallable(rawMethod, context) ?? 'GET';
+            const other = resolveCallable(rawOther, context);
+            const pathVariables = resolveCallable(rawPathVariables, context);
+
+            const urlQuery = query ? prepareUrlParams(query) : undefined;
+            const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+            const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
+
             const { mockResponse } = requestOptionsRef.current;
             if (mockResponse) {
-                if (context === undefined || runId < 0 || !isFetchable(extendedUrl, method, body)) {
+                if (context === undefined || !isFetchable(extendedUrl, method, body)) {
                     return undefined;
                 }
 
@@ -226,7 +208,7 @@ function useLazyRequest<R, E, O, C = null>(
                 return undefined;
             }
 
-            if (context === undefined || runId < 0 || !isFetchable(extendedUrl, method, body)) {
+            if (context === undefined || !isFetchable(extendedUrl, method, body)) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
                 setPendingSafe(false, clientIdRef.current);
@@ -241,6 +223,7 @@ function useLazyRequest<R, E, O, C = null>(
             const previousCache = getCacheRef.current
                 ? getCacheRef.current(extendedUrl)
                 : undefined;
+
             if (method === 'GET' && previousCache) {
                 setResponseSafe(previousCache, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
@@ -288,7 +271,7 @@ function useLazyRequest<R, E, O, C = null>(
             };
         },
         [
-            extendedUrl, method, body, other,
+            requestOptionsFromState,
             setPendingSafe, setResponseSafe, setErrorSafe, callSideEffectSafe,
             runId,
             context,

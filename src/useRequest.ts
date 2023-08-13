@@ -5,6 +5,7 @@ import {
     useCallback,
     useContext,
     useLayoutEffect,
+    useMemo,
 } from 'react';
 
 import {
@@ -90,9 +91,18 @@ function useRequest<R, E, O>(
         pathVariables,
     } = requestOptions;
 
-    const urlQuery = query ? prepareUrlParams(query) : undefined;
-    const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
-    const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
+    const extendedUrl = useMemo(
+        () => {
+            if (skip) {
+                return undefined;
+            }
+
+            const urlQuery = query ? prepareUrlParams(query) : undefined;
+            const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+            return middleUrl ? resolvePath(middleUrl, pathVariables) : url;
+        },
+        [pathVariables, url, query, skip],
+    );
 
     const [response, setResponse] = useState<R | undefined>();
     const [error, setError] = useState<E | undefined>();
