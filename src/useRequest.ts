@@ -49,7 +49,6 @@ export type RequestOptions<R, E, O> = BaseRequestOptions<R, E, null> & {
 
     // NOTE: don't ever re-trigger
     delay?: number;
-    mockResponse?: R;
     preserveResponse?: boolean;
 } & O;
 
@@ -195,27 +194,6 @@ function useRequest<R, E, O>(
 
     useEffect(
         () => {
-            const { mockResponse } = requestOptionsRef.current;
-            if (mockResponse) {
-                if (runId < 0 || !isFetchable(extendedUrl, method, body)) {
-                    return undefined;
-                }
-
-                clientIdRef.current += 1;
-
-                setResponseSafe(mockResponse, clientIdRef.current);
-                setErrorSafe(undefined, clientIdRef.current);
-                setPendingSafe(false, clientIdRef.current);
-
-                const { onSuccess } = requestOptionsRef.current;
-                if (onSuccess) {
-                    callSideEffectSafe(() => {
-                        onSuccess(mockResponse, null);
-                    }, clientIdRef.current);
-                }
-                return undefined;
-            }
-
             if (runId < 0 || !isFetchable(extendedUrl, method, body)) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);

@@ -46,7 +46,6 @@ export type LazyRequestOptions<R, E, C, O> = BaseRequestOptions<R, E, C> & {
 
     // NOTE: don't ever re-trigger
     delay?: number;
-    mockResponse?: R;
     preserveResponse?: boolean;
 } & O;
 
@@ -62,7 +61,7 @@ function useLazyRequest<R, E, O, C = null>(
         setCache,
     } = useContext(RequestContext as React.Context<ContextInterface<R, unknown, E, O>>);
 
-    // NOTE: forgot why the clientId is required but it is required
+    // NOTE: clientId is required to associate network request with it's respective response
     const clientIdRef = useRef<number>(-1);
     const pendingSetByRef = useRef<number>(-1);
     const responseSetByRef = useRef<number>(-1);
@@ -187,27 +186,6 @@ function useLazyRequest<R, E, O, C = null>(
             const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
             const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
 
-            const { mockResponse } = requestOptionsRef.current;
-            if (mockResponse) {
-                if (context === undefined || !isFetchable(extendedUrl, method, body)) {
-                    return undefined;
-                }
-
-                clientIdRef.current += 1;
-
-                setResponseSafe(mockResponse, clientIdRef.current);
-                setErrorSafe(undefined, clientIdRef.current);
-                setPendingSafe(false, clientIdRef.current);
-
-                const { onSuccess } = requestOptionsRef.current;
-                if (onSuccess) {
-                    callSideEffectSafe(() => {
-                        onSuccess(mockResponse, context);
-                    }, clientIdRef.current);
-                }
-                return undefined;
-            }
-
             if (context === undefined || !isFetchable(extendedUrl, method, body)) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
@@ -279,7 +257,7 @@ function useLazyRequest<R, E, O, C = null>(
     );
 
     const trigger = useCallback(
-        (ctx: C) => {
+        (ctx: C | undefined) => {
             ReactDOM.unstable_batchedUpdates(() => {
                 setRunId(new Date().getTime());
                 setContext(ctx);
