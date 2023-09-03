@@ -57,6 +57,7 @@ The request options for useRequest are listed below:
 |options|description|
 |----|----|
 |url|The request url (excluding url query)|
+|pathVariables|Values for the variables in the `url`
 |query|The query part of the url as object|
 |body|The request body|
 |method|The request method|
@@ -67,7 +68,6 @@ The request options for useRequest are listed below:
 |delay|Can be used to delay calling a request (in milliseconds)|
 |shouldRetry|Can be used to retry a request. This method should return time after which request should be retried.|
 |shouldPoll|Can be used to poll a request. This method should return time to poll the request.|
-|mockResponse|Can be use to define a mock response|
 |preserveResponse|Can be used to persist previous response until new response has arrived|
 
 The result for useRequest are listed below:
@@ -125,6 +125,7 @@ The request options for useLazyRequest are listed below:
 |options|description|
 |----|----|
 |url|The request url (can be a function)|
+|pathVariables|Values for the variables in the `url`
 |query|The query part of the url as object (can be a function)|
 |body|The request body (can be a function)|
 |method|The request method (can be a function)|
@@ -134,7 +135,6 @@ The request options for useLazyRequest are listed below:
 |delay|Can be used to delay calling a request (in milliseconds)|
 |shouldRetry|Can be used to retry a request. This method should return time after which request should be retried.|
 |shouldPoll|Can be used to poll a request. This method should return time to poll the request.|
-|mockResponse|Can be use to define a mock response|
 |preserveResponse|Can be used to persist previous response until new response has arrived|
 
 The result for useLazyRequest are listed below:

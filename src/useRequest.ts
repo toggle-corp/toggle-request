@@ -5,6 +5,7 @@ import {
     useCallback,
     useContext,
     useLayoutEffect,
+    useMemo,
 } from 'react';
 
 import {
@@ -48,7 +49,6 @@ export type RequestOptions<R, E, O> = BaseRequestOptions<R, E, null> & {
 
     // NOTE: don't ever re-trigger
     delay?: number;
-    mockResponse?: R;
     preserveResponse?: boolean;
 } & O;
 
@@ -90,9 +90,18 @@ function useRequest<R, E, O>(
         pathVariables,
     } = requestOptions;
 
-    const urlQuery = query ? prepareUrlParams(query) : undefined;
-    const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
-    const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
+    const extendedUrl = useMemo(
+        () => {
+            if (skip) {
+                return undefined;
+            }
+
+            const urlQuery = query ? prepareUrlParams(query) : undefined;
+            const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+            return middleUrl ? resolvePath(middleUrl, pathVariables) : url;
+        },
+        [pathVariables, url, query, skip],
+    );
 
     const [response, setResponse] = useState<R | undefined>();
     const [error, setError] = useState<E | undefined>();
@@ -185,27 +194,6 @@ function useRequest<R, E, O>(
 
     useEffect(
         () => {
-            const { mockResponse } = requestOptionsRef.current;
-            if (mockResponse) {
-                if (runId < 0 || !isFetchable(extendedUrl, method, body)) {
-                    return undefined;
-                }
-
-                clientIdRef.current += 1;
-
-                setResponseSafe(mockResponse, clientIdRef.current);
-                setErrorSafe(undefined, clientIdRef.current);
-                setPendingSafe(false, clientIdRef.current);
-
-                const { onSuccess } = requestOptionsRef.current;
-                if (onSuccess) {
-                    callSideEffectSafe(() => {
-                        onSuccess(mockResponse, null);
-                    }, clientIdRef.current);
-                }
-                return undefined;
-            }
-
             if (runId < 0 || !isFetchable(extendedUrl, method, body)) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
