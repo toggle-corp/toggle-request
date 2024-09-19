@@ -165,6 +165,13 @@ function useLazyRequest<R, E, O, C = null>(
                 return undefined;
             }
 
+            if (context === undefined) {
+                setResponseSafe(undefined, clientIdRef.current);
+                setErrorSafe(undefined, clientIdRef.current);
+                setPendingSafe(false, clientIdRef.current);
+                return undefined;
+            }
+
             const {
                 url: rawUrl,
                 query: rawQuery,
@@ -186,7 +193,7 @@ function useLazyRequest<R, E, O, C = null>(
             const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
             const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
 
-            if (context === undefined || !isFetchable(extendedUrl, method, body)) {
+            if (!isFetchable(extendedUrl, method, body)) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
                 setPendingSafe(false, clientIdRef.current);
