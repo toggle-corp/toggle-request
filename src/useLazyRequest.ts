@@ -161,11 +161,7 @@ function useLazyRequest<R, E, O, C = null>(
 
     useEffect(
         () => {
-            if (runId < 0) {
-                return undefined;
-            }
-
-            if (context === undefined) {
+            if (runId < 0 || context === undefined) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
                 setPendingSafe(false, clientIdRef.current);
