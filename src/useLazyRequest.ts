@@ -5,7 +5,6 @@ import {
     useCallback,
     useContext,
     useLayoutEffect,
-    useMemo,
 } from 'react';
 import ReactDOM from 'react-dom';
 
@@ -47,7 +46,6 @@ export type LazyRequestOptions<R, E, C, O> = BaseRequestOptions<R, E, C> & {
 
     // NOTE: don't ever re-trigger
     delay?: number;
-    mockResponse?: R;
     preserveResponse?: boolean;
 } & O;
 
@@ -63,7 +61,7 @@ function useLazyRequest<R, E, O, C = null>(
         setCache,
     } = useContext(RequestContext as React.Context<ContextInterface<R, unknown, E, O>>);
 
-    // NOTE: forgot why the clientId is required but it is required
+    // NOTE: clientId is required to associate network request with it's respective response
     const clientIdRef = useRef<number>(-1);
     const pendingSetByRef = useRef<number>(-1);
     const responseSetByRef = useRef<number>(-1);
@@ -83,49 +81,9 @@ function useLazyRequest<R, E, O, C = null>(
 
     const contextRef = useRef(context);
 
-    const {
-        url: rawUrl,
-        query: rawQuery,
-        method: rawMethod,
-        body: rawBody,
-        other: rawOther,
-        pathVariables: rawPathVariables,
-    } = requestOptionsFromState;
-
-    const query = useMemo(
-        () => resolveCallable(rawQuery, context),
-        [rawQuery, context],
-    );
-    const url = useMemo(
-        () => resolveCallable(rawUrl, context),
-        [rawUrl, context],
-    );
-    const body = useMemo(
-        () => resolveCallable(rawBody, context),
-        [rawBody, context],
-    );
-    const method = useMemo(
-        () => resolveCallable(rawMethod, context) ?? 'GET',
-        [rawMethod, context],
-    );
-    const other = useMemo(
-        () => resolveCallable(rawOther, context),
-        [rawOther, context],
-    );
-    const pathVariables = useMemo(
-        () => resolveCallable(rawPathVariables, context),
-        [rawPathVariables, context],
-    );
-
-    const urlQuery = query ? prepareUrlParams(query) : undefined;
-    const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
-    const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
-
+    const [runId, setRunId] = useState(-1);
     const [response, setResponse] = useState<R | undefined>();
     const [error, setError] = useState<E | undefined>();
-
-    const [runId, setRunId] = useState(-1);
-
     const [pending, setPending] = useState(false);
 
     const setPendingSafe = useCallback(
@@ -146,7 +104,6 @@ function useLazyRequest<R, E, O, C = null>(
         },
         [],
     );
-
     const setErrorSafe = useCallback(
         (value: E | undefined, clientId: number) => {
             if (clientId >= errorSetByRef.current) {
@@ -156,7 +113,6 @@ function useLazyRequest<R, E, O, C = null>(
         },
         [],
     );
-
     const callSideEffectSafe = useCallback(
         (callback: () => void, clientId: number) => {
             if (clientId >= clientIdRef.current) {
@@ -166,6 +122,12 @@ function useLazyRequest<R, E, O, C = null>(
         [],
     );
 
+    useLayoutEffect(
+        () => {
+            requestOptionsRef.current = requestOptions;
+        },
+        [requestOptions],
+    );
     useLayoutEffect(
         () => {
             transformOptionsRef.current = transformOptions;
@@ -192,12 +154,6 @@ function useLazyRequest<R, E, O, C = null>(
     );
     useLayoutEffect(
         () => {
-            requestOptionsRef.current = requestOptions;
-        },
-        [requestOptions],
-    );
-    useLayoutEffect(
-        () => {
             contextRef.current = context;
         },
         [context],
@@ -205,28 +161,35 @@ function useLazyRequest<R, E, O, C = null>(
 
     useEffect(
         () => {
-            const { mockResponse } = requestOptionsRef.current;
-            if (mockResponse) {
-                if (context === undefined || runId < 0 || !isFetchable(extendedUrl, method, body)) {
-                    return undefined;
-                }
-
-                clientIdRef.current += 1;
-
-                setResponseSafe(mockResponse, clientIdRef.current);
+            if (runId < 0 || context === undefined) {
+                setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
                 setPendingSafe(false, clientIdRef.current);
-
-                const { onSuccess } = requestOptionsRef.current;
-                if (onSuccess) {
-                    callSideEffectSafe(() => {
-                        onSuccess(mockResponse, context);
-                    }, clientIdRef.current);
-                }
                 return undefined;
             }
 
-            if (context === undefined || runId < 0 || !isFetchable(extendedUrl, method, body)) {
+            const {
+                url: rawUrl,
+                query: rawQuery,
+                method: rawMethod,
+                body: rawBody,
+                other: rawOther,
+                pathVariables: rawPathVariables,
+            } = requestOptionsFromState;
+
+            const query = resolveCallable(rawQuery, context);
+            const url = resolveCallable(rawUrl, context);
+
+            const body = resolveCallable(rawBody, context);
+            const method = resolveCallable(rawMethod, context) ?? 'GET';
+            const other = resolveCallable(rawOther, context);
+            const pathVariables = resolveCallable(rawPathVariables, context);
+
+            const urlQuery = query ? prepareUrlParams(query) : undefined;
+            const middleUrl = url && urlQuery ? `${url}?${urlQuery}` : url;
+            const extendedUrl = middleUrl ? resolvePath(middleUrl, pathVariables) : url;
+
+            if (!isFetchable(extendedUrl, method, body)) {
                 setResponseSafe(undefined, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
                 setPendingSafe(false, clientIdRef.current);
@@ -241,6 +204,7 @@ function useLazyRequest<R, E, O, C = null>(
             const previousCache = getCacheRef.current
                 ? getCacheRef.current(extendedUrl)
                 : undefined;
+
             if (method === 'GET' && previousCache) {
                 setResponseSafe(previousCache, clientIdRef.current);
                 setErrorSafe(undefined, clientIdRef.current);
@@ -288,7 +252,7 @@ function useLazyRequest<R, E, O, C = null>(
             };
         },
         [
-            extendedUrl, method, body, other,
+            requestOptionsFromState,
             setPendingSafe, setResponseSafe, setErrorSafe, callSideEffectSafe,
             runId,
             context,
@@ -296,7 +260,7 @@ function useLazyRequest<R, E, O, C = null>(
     );
 
     const trigger = useCallback(
-        (ctx: C) => {
+        (ctx: C | undefined) => {
             ReactDOM.unstable_batchedUpdates(() => {
                 setRunId(new Date().getTime());
                 setContext(ctx);
